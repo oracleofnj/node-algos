@@ -1,0 +1,19 @@
+{
+  "name": "node-algos-server",
+  "version": "0.1.0",
+  "description": "Server to interact with data structures module",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oracleofnj/node-algos.git"
+  },
+  "author": "oracleofnj",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/oracleofnj/node-algos/issues"
+  },
+  "homepage": "https://github.com/oracleofnj/node-algos#readme"
+}
