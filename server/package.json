@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/oracleofnj/node-algos/issues"
   },
-  "homepage": "https://github.com/oracleofnj/node-algos#readme"
+  "homepage": "https://github.com/oracleofnj/node-algos#readme",
+  "dependencies": {
+    "express": "^4.13.4"
+  }
 }
