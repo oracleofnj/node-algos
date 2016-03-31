@@ -1,7 +1,7 @@
 'use strict';
-let UnionFind = require('./union-find.js');
+let UnionFind = require('./module/index.js').UnionFind;
 
-const ITERS_PER_N = 1000, N_MIN = 128, N_MAX = 128;
+const ITERS_PER_N = 100, N_MIN = 512, N_MAX = 512;
 
 let init = [], N, results = {};
 for (let i=0; i < N_MAX * N_MAX + 2; i++) {

@@ -1,5 +1,5 @@
 'use strict';
-let UnionFind = require('./union-find.js');
+let UnionFind = require('./module/index.js').UnionFind;
 let init = [];
 const iMax = parseInt(process.argv[2], 10), multiple = parseFloat(process.argv[3]);
 

@@ -16,6 +16,7 @@ class UnionFind {
 
   findRoot(item) {
     while (this.parents[item] !== item) {
+      this.parents[item] = this.parents[this.parents[item]];
       item = this.parents[item];
     }
     return item;
