@@ -1,3 +1,4 @@
 'use strict';
 let UnionFind = require('./union-find.js');
-module.exports = {UnionFind};
+let BinaryTree = require('./binary-tree.js');
+module.exports = {UnionFind, BinaryTree};
