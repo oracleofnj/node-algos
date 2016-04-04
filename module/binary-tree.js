@@ -12,9 +12,13 @@ function TreeNode(key, val) {
 class BinaryTree {
   constructor() {
     this.root = null;
+    this.keyType = null;
   }
 
   get(key) {
+    if (this.keyType !== typeof key) {
+      throw new Error('key type (' + typeof key + ') doesn\'t match tree key type (' + this.keyType + ')');
+    }
     let node = this.root;
     while (node !== null) {
       if (key === node.key) {
@@ -24,7 +28,7 @@ class BinaryTree {
       } else if (key > node.key) {
         node = node.rightChild;
       } else {
-        throw new Error("key wasn't <, ===, or > than node.key"); // might be possible b/c of JS == vs ===
+        throw new Error('key wasn\'t <, ===, or > than node.key'); // might be possible b/c of JS == vs ===
       }
     }
     return undefined;
@@ -41,12 +45,15 @@ class BinaryTree {
     } else if (key > node.key) {
       node.rightChild = BinaryTree.putInNode(key, val, node.rightChild);
     } else {
-      throw new Error("key wasn't <, ===, or > than node.key"); // might be possible b/c of JS == vs ===
+      throw new Error('key wasn\'t <, ===, or > than node.key'); // might be possible b/c of JS == vs ===
     }
     return node;
   }
 
   put(key, val) {
+    if (this.root === null) {
+      this.keyType = typeof key;
+    }
     this.root = BinaryTree.putInNode(key, val, this.root);
   }
 
@@ -62,6 +69,10 @@ class BinaryTree {
 
   contents() {
     return BinaryTree.inorder(this.root);
+  }
+
+  toString() {
+    return JSON.stringify(this.root,null,2);
   }
 }
 

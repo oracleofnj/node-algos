@@ -7,3 +7,4 @@ for (let i=0; i < 100; i++) {
   bst.put(x, x);
 }
 console.log(bst.contents());
+console.log(bst.toString());
