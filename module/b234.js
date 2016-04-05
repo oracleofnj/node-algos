@@ -146,6 +146,143 @@ function insertIntoNonFullNode(node, key, val) {
   }
 }
 
+function adjustForDelete(node, pos) {
+  if (node.degree <= 2) {
+    throw new Error('Asked to adjust a singleton node for deletion');
+  }
+  if (node.children[pos].degree > 2) {
+    return node;
+  }
+  if ((pos > 0) && (node.children[pos - 1].degree > 2)) {
+    // left sibling has an extra node available: rotate right
+    return {
+      keyEntries: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
+      valEntries: [...node.valEntries.slice(0, pos - 1), node.children[pos - 1].valEntries[node.children[pos - 1].degree - 2], ...node.valEntries.slice(pos - 1)],
+//      children: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
+      degree: node.degree,
+    };
+  } else if ((pos < (node.degree - 1)) && (node.children[pos + 1].degree > 2)) {
+    // right sibling has an extra node available: rotate left
+    return {
+      keyEntries: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
+      valEntries: [...node.valEntries.slice(0, pos - 1), node.children[pos - 1].valEntries[node.children[pos - 1].degree - 2], ...node.valEntries.slice(pos - 1)],
+//      children: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
+      degree: node.degree,
+    };
+  } else if (pos === 0) {
+    // fuse with right sibling
+  } else {
+    // fuse with left sibling
+  }
+}
+
+function deleteFromNonSingletonNode(node, key, val) {
+  let keyloc = findKey(node, key);
+  if (keyloc.found) {
+    let succNode = node.children[keyloc.pos + 1];
+    if (succNode === null) { // leaf node
+      return {
+        keyEntries: [...node.keyEntries.slice(0, keyloc.pos), ...node.keyEntries.slice(keyloc.pos + 1)],
+        valEntries: [...node.valEntries.slice(0, keyloc.pos), ...node.valEntries.slice(keyloc.pos + 1)],
+        children: [...node.children.slice(0, keyloc.pos), ...node.children.slice(keyloc.pos + 1)], // should all be null anyway - could be simpler
+        degree: node.degree - 1,
+      }
+    } else {
+      let succ = getMin(succNode);
+      let adjustedNode = adjustForDelete(node, keyloc.pos + 1);
+      keyloc = findKey(adjustedNode, key);
+      if (keyloc.found) { // still in this node
+        return {
+          keyEntries: [...adjustedNode.keyEntries.slice(0, keyloc.pos + 1), succ.key, ...adjustedNode.keyEntries.slice(keyloc.pos + 2)],
+          valEntries: [...adjustedNode.valEntries.slice(0, keyloc.pos + 1), succ.val, ...adjustedNode.valEntries.slice(keyloc.pos + 2)],
+          children: [...adjustedNode.children.slice(0, keyloc.pos + 1), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos + 1], succ.key, succ.val), ...adjustedNode.children.slice(keyloc.pos + 2)],
+          degree: adjustedNode.degree,
+        };
+      } else {
+        return {
+          keyEntries: adjustedNode.keyEntries.slice(0),
+          valEntries: adjustedNode.valEntries.slice(0),
+          children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key, val), ...adjustedNode.children.slice(keyloc.pos + 1)],
+          degree: adjustedNode.degree,
+        };
+      }
+    }
+  } else {
+    if (node.children[keyloc.pos] === null) {
+      // got to the leaf, but key ain't here
+      // could either throw exception or just return unchanged
+      throw new Error('Key not found');
+    }
+    let adjustedNode = adjustForDelete(node, keyloc.pos);
+    keyloc = findKey(adjustedNode, key);
+    if (keyloc.found) {
+      throw new Error('This shouldn\'t be possible');
+    }
+    return {
+      keyEntries: adjustedNode.keyEntries.slice(0),
+      valEntries: adjustedNode.valEntries.slice(0),
+      children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key, val), ...adjustedNode.children.slice(keyloc.pos + 1)],
+      degree: adjustedNode.degree,
+    };
+  }
+}
+
+function getMin(node) {
+  while (node.children[0] !== null) {
+    node = node.children[0];
+  }
+  return {key: node.keyEntries[0], val: node.valEntries[0]};
+}
+
+function getMax(node) {
+  while (node.children[node.degree-1] !== null) {
+    node = node.children[node.degree-1];
+  }
+  return {key: node.keyEntries[node.degree-2], val: node.valEntries[node.degree - 2]};
+}
+
+function findPathToKey(node, key) {
+  let res = [], keyloc;
+  while (node !== null) {
+    keyloc = findKey(node, key);
+    res.push(keyloc.pos);
+    if (keyloc.found) {
+      return {
+        node: node,
+        path: res,
+        val: keyloc.val
+      };
+    }
+    node = node.children[keyloc.pos];
+  }
+  return undefined;
+}
+
+function subSuccessor(node, key) {
+  // returns the smallest element in the right subtree
+}
+
+function inorder(node) {
+  if (node === null) {
+    return [];
+  } else if (node.children[0] === null) { // leaf
+    return node.keyEntries.map((x,i) => {
+      let kv = {};
+      kv[x] = node.valEntries[i];
+      return kv;
+    });
+  } else {
+    let res = [], i;
+    for (i=0; i < node.degree - 1; i++) {
+      let kv = {};
+      kv[node.keyEntries[i]] = node.valEntries[i];
+      res.push(...inorder(node.children[i]), kv);
+    }
+    res.push(...inorder(node.children[i]));
+    return res;
+  }
+}
+
 class B234Tree {
   constructor() {
     this.root = null;
@@ -156,18 +293,15 @@ class B234Tree {
     if (this.keyType !== typeof key) {
       throw new Error('key type (' + typeof key + ') doesn\'t match tree key type (' + this.keyType + ')');
     }
-    let node = this.root, keyloc;
-    while (node !== null) {
-      keyloc = findKey(node, key);
-      if (keyloc.found) {
-        return keyloc.val;
-      }
-      node = node.children[keyloc.pos];
-    }
-    return undefined;
+    let nodePath = findPathToKey(this.root, key);
+    console.log(nodePath.path);
+    return nodePath ? nodePath.val : undefined;
   }
 
   put(key, val) {
+    if (typeof val === "undefined") {
+      val = key;
+    }
     if (this.root === null) {
       this.keyType = typeof key;
       this.root = B234Node(key, val);
@@ -179,8 +313,24 @@ class B234Tree {
     }
   }
 
+  min() {
+    if (this.root === null) {
+      return undefined;
+    } else {
+      return getMin(this.root);
+    }
+  }
+
+  max() {
+    if (this.root === null) {
+      return undefined;
+    } else {
+      return getMax(this.root);
+    }
+  }
+
   contents() {
-    return BinaryTree.inorder(this.root);
+    return inorder(this.root);
   }
 
   toString() {
@@ -188,4 +338,4 @@ class B234Tree {
   }
 }
 
-module.exports = {B234Tree, findKey, B234Node, mergeEntry};
+module.exports = B234Tree;
