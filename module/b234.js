@@ -147,36 +147,100 @@ function insertIntoNonFullNode(node, key, val) {
 }
 
 function adjustForDelete(node, pos) {
-  if (node.degree <= 2) {
-    throw new Error('Asked to adjust a singleton node for deletion');
-  }
   if (node.children[pos].degree > 2) {
     return node;
   }
   if ((pos > 0) && (node.children[pos - 1].degree > 2)) {
     // left sibling has an extra node available: rotate right
+    let leftChild = node.children[pos - 1], rightChild = node.children[pos];
     return {
-      keyEntries: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
-      valEntries: [...node.valEntries.slice(0, pos - 1), node.children[pos - 1].valEntries[node.children[pos - 1].degree - 2], ...node.valEntries.slice(pos - 1)],
-//      children: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
+      keyEntries: [...node.keyEntries.slice(0, pos - 1), leftChild.keyEntries[leftChild.degree - 2], ...node.keyEntries.slice(pos)],
+      valEntries: [...node.valEntries.slice(0, pos - 1), leftChild.valEntries[leftChild.degree - 2], ...node.valEntries.slice(pos)],
+      children: [
+        ...node.children.slice(0, pos - 1),
+        {
+          keyEntries: leftChild.keyEntries.slice(0, -1),
+          valEntries: leftChild.valEntries.slice(0, -1),
+          children: leftChild.children.slice(0, -1),
+          degree: leftChild.degree - 1,
+        },
+        {
+          keyEntries: [node.keyEntries[pos - 1], ...rightChild.keyEntries.slice(0)],
+          valEntries: [node.valEntries[pos - 1], ...rightChild.valEntries.slice(0)],
+          children: [leftChild.children[leftChild.degree - 1], ...rightChild.children.slice(0)],
+          degree: rightChild.degree + 1,
+        },
+        ...node.children.slice(pos + 1)],
       degree: node.degree,
     };
   } else if ((pos < (node.degree - 1)) && (node.children[pos + 1].degree > 2)) {
     // right sibling has an extra node available: rotate left
+    let leftChild = node.children[pos], rightChild = node.children[pos + 1];
     return {
-      keyEntries: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
-      valEntries: [...node.valEntries.slice(0, pos - 1), node.children[pos - 1].valEntries[node.children[pos - 1].degree - 2], ...node.valEntries.slice(pos - 1)],
-//      children: [...node.keyEntries.slice(0, pos - 1), node.children[pos - 1].keyEntries[node.children[pos - 1].degree - 2], ...node.keyEntries.slice(pos - 1)],
+      keyEntries: [...node.keyEntries.slice(0, pos), rightChild.keyEntries[0], ...node.keyEntries.slice(pos + 1)],
+      valEntries: [...node.valEntries.slice(0, pos), rightChild.valEntries[0], ...node.valEntries.slice(pos + 1)],
+      children: [
+        ...node.children.slice(0, pos),
+        {
+          keyEntries: [...leftChild.keyEntries.slice(0), node.keyEntries[pos]],
+          valEntries: [...leftChild.valEntries.slice(0), node.valEntries[pos]],
+          children: [...leftChild.children.slice(0), rightChild.children[0]],
+          degree: leftChild.degree + 1,
+        },
+        {
+          keyEntries: rightChild.keyEntries.slice(1),
+          valEntries: rightChild.valEntries.slice(1),
+          children: rightChild.children.slice(1),
+          degree: rightChild.degree - 1,
+        },
+        ...node.children.slice(pos + 2)],
       degree: node.degree,
     };
-  } else if (pos === 0) {
-    // fuse with right sibling
   } else {
-    // fuse with left sibling
+    if (node.degree <= 2) {
+      throw new Error('Asked to adjust a singleton node for deletion');
+    } else {
+      if (pos === 0) {
+        // fuse with right sibling
+        let leftChild = node.children[pos], rightChild = node.children[pos + 1];
+        return {
+          keyEntries: node.keyEntries.slice(pos + 1),
+          valEntries: node.valEntries.slice(pos + 1),
+          children: [
+            {
+              keyEntries: [...leftChild.keyEntries.slice(0), node.keyEntries[pos], ...rightChild.keyEntries.slice(0)],
+              valEntries: [...leftChild.valEntries.slice(0), node.valEntries[pos], ...rightChild.valEntries.slice(0)],
+              children: [...leftChild.children.slice(0), ...rightChild.children.slice(0)],
+              degree: leftChild.degree + rightChild.degree, // degree = number of children, which didn't change
+            },
+            ...node.children.slice(pos + 2),
+          ],
+          degree: node.degree - 1,
+        }
+      } else {
+        // fuse with left sibling
+        let leftChild = node.children[pos - 1], rightChild = node.children[pos];
+        return {
+          keyEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos + 1)],
+          valEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos + 1)],
+          children: [
+            ...node.children.slice(0, pos-1),
+            {
+              keyEntries: [...leftChild.keyEntries.slice(0), node.keyEntries[pos-1], ...rightChild.keyEntries.slice(0)],
+              valEntries: [...leftChild.valEntries.slice(0), node.valEntries[pos-1], ...rightChild.valEntries.slice(0)],
+              children: [...leftChild.children.slice(0), ...rightChild.children.slice(0)],
+              degree: leftChild.degree + rightChild.degree, // degree = number of children, which didn't change
+            },
+            ...node.children.slice(pos+1)
+          ],
+          degree: node.degree - 1,
+        }
+      }
+    }
   }
 }
 
-function deleteFromNonSingletonNode(node, key, val) {
+function deleteFromNonSingletonNode(node, key) {
   let keyloc = findKey(node, key);
   if (keyloc.found) {
     let succNode = node.children[keyloc.pos + 1];
@@ -195,14 +259,14 @@ function deleteFromNonSingletonNode(node, key, val) {
         return {
           keyEntries: [...adjustedNode.keyEntries.slice(0, keyloc.pos + 1), succ.key, ...adjustedNode.keyEntries.slice(keyloc.pos + 2)],
           valEntries: [...adjustedNode.valEntries.slice(0, keyloc.pos + 1), succ.val, ...adjustedNode.valEntries.slice(keyloc.pos + 2)],
-          children: [...adjustedNode.children.slice(0, keyloc.pos + 1), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos + 1], succ.key, succ.val), ...adjustedNode.children.slice(keyloc.pos + 2)],
+          children: [...adjustedNode.children.slice(0, keyloc.pos + 1), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos + 1], succ.key), ...adjustedNode.children.slice(keyloc.pos + 2)],
           degree: adjustedNode.degree,
         };
       } else {
         return {
           keyEntries: adjustedNode.keyEntries.slice(0),
           valEntries: adjustedNode.valEntries.slice(0),
-          children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key, val), ...adjustedNode.children.slice(keyloc.pos + 1)],
+          children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key), ...adjustedNode.children.slice(keyloc.pos + 1)],
           degree: adjustedNode.degree,
         };
       }
@@ -221,9 +285,34 @@ function deleteFromNonSingletonNode(node, key, val) {
     return {
       keyEntries: adjustedNode.keyEntries.slice(0),
       valEntries: adjustedNode.valEntries.slice(0),
-      children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key, val), ...adjustedNode.children.slice(keyloc.pos + 1)],
+      children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key), ...adjustedNode.children.slice(keyloc.pos + 1)],
       degree: adjustedNode.degree,
     };
+  }
+}
+
+function deleteFromRoot(root, key) {
+  if (root.degree > 2) {
+    return deleteFromNonSingletonNode(root, key);
+  } else {
+    if (root.children[0] === null) { // there is only one entry in this tree - it had better be equal to key
+      if (root.keyEntries[0] !== key) {
+        throw new Error('Key not found');
+      } else {
+        return null;
+      }
+    } else {
+      if (root.children[0].degree === 2 && root.children[1].degree === 2) {
+        let leftChild = root.children[0], rightChild = root.children[1];
+        root = {
+          keyEntries: [...leftChild.keyEntries.slice(0), root.keyEntries[0], ...rightChild.keyEntries.slice(0)],
+          valEntries: [...leftChild.valEntries.slice(0), root.valEntries[0], ...rightChild.valEntries.slice(0)],
+          children: [...leftChild.children.slice(0), ...rightChild.children.slice(0)],
+          degree: leftChild.degree + rightChild.degree,
+        };
+      }
+      return deleteFromNonSingletonNode(root, key);
+    }
   }
 }
 
@@ -306,11 +395,21 @@ class B234Tree {
       this.keyType = typeof key;
       this.root = B234Node(key, val);
     } else {
+      if (this.keyType !== typeof key) {
+        throw new Error('key type (' + typeof key + ') doesn\'t match tree key type (' + this.keyType + ')');
+      }
       if (this.root.degree === 4) {
         this.root = splitNode(null, this.root);
       }
       this.root = insertIntoNonFullNode(this.root, key, val);
     }
+  }
+
+  del(key) {
+    if (this.keyType !== typeof key) {
+      throw new Error('key type (' + typeof key + ') doesn\'t match tree key type (' + this.keyType + ')');
+    }
+    this.root = deleteFromRoot(this.root, key);
   }
 
   min() {
