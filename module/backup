@@ -9,18 +9,6 @@ function B234Node(key, val, leftChild, rightChild) {
   };
 }
 
-function toString(node) {
-  if (node === null) {
-    return '(empty)';
-  } else {
-    if (node.children[0] === null) {
-      return JSON.stringify({degree: node.degree, keyEntries: node.keyEntries, valEntries: node.valEntries, children: '(leaf node)'});
-    } else {
-      return JSON.stringify({degree: node.degree, keyEntries: node.keyEntries, valEntries: node.valEntries, children: node.children.map(x => x.keyEntries)});
-    }
-  }
-}
-
 function findKey(node, key) {
   let res = {found: false};
   switch(node.degree) {
@@ -33,7 +21,9 @@ function findKey(node, key) {
       } else if (key > node.keyEntries[0]) {
         res.pos = 1;
       } else {
-        console.log(toString(node));
+        console.log(node.keyEntries);
+        console.log(node.valEntries);
+        console.log(key);
         throw new Error('key (' + key + ') not < === or > entry[0] (' + node.keyEntries[0] + ')');
       }
       break;
@@ -50,13 +40,17 @@ function findKey(node, key) {
         } else if (key > node.keyEntries[0]) {
           res.pos = 1;
         } else {
-          console.log(toString(node));
+          console.log(node.keyEntries);
+          console.log(node.valEntries);
+          console.log(key);
           throw new Error('key (' + key + ') not < === or > entry[0] (' + node.keyEntries[0] + ')');
         }
       } else if (key > node.keyEntries[1]) {
         res.pos = 2;
       } else {
-        console.log(toString(node));
+        console.log(node.keyEntries);
+        console.log(node.valEntries);
+        console.log(key);
         throw new Error('key  (' + key + ') not < === or > entry[1] (' + node.keyEntries[1] + ')')
       }
       break;
@@ -73,7 +67,9 @@ function findKey(node, key) {
         } else if (key > node.keyEntries[0]) {
           res.pos = 1;
         } else {
-          console.log(toString(node));
+          console.log(node.keyEntries);
+          console.log(node.valEntries);
+          console.log(key);
           throw new Error('key (' + key + ') not < === or > entry[0] (' + node.keyEntries[0] + ')');
         }
       } else if (key > node.keyEntries[1]) {
@@ -85,16 +81,19 @@ function findKey(node, key) {
         } else if (key > node.keyEntries[2]) {
           res.pos = 3;
         } else {
-          console.log(toString(node));
+          console.log(node.keyEntries);
+          console.log(node.valEntries);
+          console.log(key);
           throw new Error('key  (' + key + ') not < === or > entry[2] (' + node.keyEntries[2] + ')');
         }
       } else {
-        console.log(toString(node));
+        console.log(node.keyEntries);
+        console.log(node.valEntries);
+        console.log(key);
         throw new Error('key  (' + key + ') not < === or > entry[1] (' + node.keyEntries[1] + ')');
       }
       break;
     default:
-      console.log(toString(node));
       throw new Error('Illegal degree ' + node.degree);
       break;
   }
@@ -171,7 +170,6 @@ function adjustForDelete(node, pos) {
   }
   if ((pos > 0) && (node.children[pos - 1].degree > 2)) {
     // left sibling has an extra node available: rotate right
-    console.log('rotating right');
     let leftChild = node.children[pos - 1], rightChild = node.children[pos];
     return {
       keyEntries: [...node.keyEntries.slice(0, pos - 1), leftChild.keyEntries[leftChild.degree - 2], ...node.keyEntries.slice(pos)],
@@ -195,7 +193,6 @@ function adjustForDelete(node, pos) {
     };
   } else if ((pos < (node.degree - 1)) && (node.children[pos + 1].degree > 2)) {
     // right sibling has an extra node available: rotate left
-    console.log('rotating left');
     let leftChild = node.children[pos], rightChild = node.children[pos + 1];
     return {
       keyEntries: [...node.keyEntries.slice(0, pos), rightChild.keyEntries[0], ...node.keyEntries.slice(pos + 1)],
@@ -223,7 +220,6 @@ function adjustForDelete(node, pos) {
     } else {
       if (pos === 0) {
         // fuse with right sibling
-        console.log('fusing child 0 with child 1');
         let leftChild = node.children[pos], rightChild = node.children[pos + 1];
         return {
           keyEntries: node.keyEntries.slice(pos + 1),
@@ -241,11 +237,10 @@ function adjustForDelete(node, pos) {
         }
       } else {
         // fuse with left sibling
-        console.log('fusing child ' + pos + ' with child ' + (pos - 1));
         let leftChild = node.children[pos - 1], rightChild = node.children[pos];
         return {
-          keyEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos)],
-          valEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos)],
+          keyEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos + 1)],
+          valEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos + 1)],
           children: [
             ...node.children.slice(0, pos-1),
             {
@@ -276,9 +271,7 @@ function deleteFromNonSingletonNode(node, key) {
       }
     } else {
       let succ = getMin(succNode);
-      console.log('Adjusting node: ' + toString(node));
       let adjustedNode = adjustForDelete(node, keyloc.pos + 1);
-      console.log('Adjusted node: ' + toString(adjustedNode));
       keyloc = findKey(adjustedNode, key);
       if (keyloc.found) { // still in this node
         return {
@@ -302,9 +295,7 @@ function deleteFromNonSingletonNode(node, key) {
       // could either throw exception or just return unchanged
       throw new Error('Key not found');
     }
-    console.log('Adjusting node: ' + toString(node));
     let adjustedNode = adjustForDelete(node, keyloc.pos);
-    console.log('Adjusted node: ' + toString(adjustedNode));
     keyloc = findKey(adjustedNode, key);
     if (keyloc.found) {
       throw new Error('This shouldn\'t be possible');
@@ -473,4 +464,4 @@ class B234Tree {
   }
 }
 
-module.exports = {B234Tree, toString};
+module.exports = B234Tree;
