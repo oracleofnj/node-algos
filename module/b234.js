@@ -119,9 +119,9 @@ function mergeEntry(node, key, val, leftChild, rightChild) {
     throw new Error('key already in node');
   }
   return {
-    keyEntries: [...node.keyEntries.slice(0, keyloc.pos), key, ...node.keyEntries.slice(keyloc.pos)],
-    valEntries: [...node.valEntries.slice(0, keyloc.pos), val, ...node.valEntries.slice(keyloc.pos)],
-    children: [...node.children.slice(0, keyloc.pos), leftChild, rightChild, ...node.children.slice(keyloc.pos + 1)],
+    keyEntries: [].concat(node.keyEntries.slice(0, keyloc.pos), key, node.keyEntries.slice(keyloc.pos)),
+    valEntries: [].concat(node.valEntries.slice(0, keyloc.pos), val, node.valEntries.slice(keyloc.pos)),
+    children: [].concat(node.children.slice(0, keyloc.pos), leftChild, rightChild, node.children.slice(keyloc.pos + 1)),
     degree: node.degree + 1,
   }
 }
@@ -147,7 +147,7 @@ function insertIntoNonFullNode(node, key, val) {
   if (keyloc.found) {
     return {
       keyEntries: node.keyEntries.slice(0),
-      valEntries: [...node.valEntries.slice(0, keyloc.pos), val, ...node.valEntries.slice(keyloc.pos + 1)],
+      valEntries: [].concat(node.valEntries.slice(0, keyloc.pos), val, node.valEntries.slice(keyloc.pos + 1)),
       children: node.children.slice(0),
       degree: node.degree,
     }
@@ -159,7 +159,7 @@ function insertIntoNonFullNode(node, key, val) {
     return {
       keyEntries: res.keyEntries,
       valEntries: res.valEntries,
-      children: [...res.children.slice(0, keyloc.pos), insertIntoNonFullNode(res.children[keyloc.pos], key, val), ...res.children.slice(keyloc.pos + 1)],
+      children: [].concat(res.children.slice(0, keyloc.pos), insertIntoNonFullNode(res.children[keyloc.pos], key, val), res.children.slice(keyloc.pos + 1)),
       degree: res.degree,
     }
   }
@@ -174,10 +174,10 @@ function adjustForDelete(node, pos) {
     console.log('rotating right');
     let leftChild = node.children[pos - 1], rightChild = node.children[pos];
     return {
-      keyEntries: [...node.keyEntries.slice(0, pos - 1), leftChild.keyEntries[leftChild.degree - 2], ...node.keyEntries.slice(pos)],
-      valEntries: [...node.valEntries.slice(0, pos - 1), leftChild.valEntries[leftChild.degree - 2], ...node.valEntries.slice(pos)],
-      children: [
-        ...node.children.slice(0, pos - 1),
+      keyEntries: [].concat(node.keyEntries.slice(0, pos - 1), leftChild.keyEntries[leftChild.degree - 2], node.keyEntries.slice(pos)),
+      valEntries: [].concat(node.valEntries.slice(0, pos - 1), leftChild.valEntries[leftChild.degree - 2], node.valEntries.slice(pos)),
+      children: [].concat(
+        node.children.slice(0, pos - 1),
         {
           keyEntries: leftChild.keyEntries.slice(0, -1),
           valEntries: leftChild.valEntries.slice(0, -1),
@@ -185,12 +185,12 @@ function adjustForDelete(node, pos) {
           degree: leftChild.degree - 1,
         },
         {
-          keyEntries: [node.keyEntries[pos - 1], ...rightChild.keyEntries.slice(0)],
-          valEntries: [node.valEntries[pos - 1], ...rightChild.valEntries.slice(0)],
-          children: [leftChild.children[leftChild.degree - 1], ...rightChild.children.slice(0)],
+          keyEntries: [].concat(node.keyEntries[pos - 1], rightChild.keyEntries.slice(0)),
+          valEntries: [].concat(node.valEntries[pos - 1], rightChild.valEntries.slice(0)),
+          children: [].concat(leftChild.children[leftChild.degree - 1], rightChild.children.slice(0)),
           degree: rightChild.degree + 1,
         },
-        ...node.children.slice(pos + 1)],
+        node.children.slice(pos + 1)),
       degree: node.degree,
     };
   } else if ((pos < (node.degree - 1)) && (node.children[pos + 1].degree > 2)) {
@@ -198,14 +198,14 @@ function adjustForDelete(node, pos) {
     console.log('rotating left');
     let leftChild = node.children[pos], rightChild = node.children[pos + 1];
     return {
-      keyEntries: [...node.keyEntries.slice(0, pos), rightChild.keyEntries[0], ...node.keyEntries.slice(pos + 1)],
-      valEntries: [...node.valEntries.slice(0, pos), rightChild.valEntries[0], ...node.valEntries.slice(pos + 1)],
-      children: [
-        ...node.children.slice(0, pos),
+      keyEntries: [].concat(node.keyEntries.slice(0, pos), rightChild.keyEntries[0], node.keyEntries.slice(pos + 1)),
+      valEntries: [].concat(node.valEntries.slice(0, pos), rightChild.valEntries[0], node.valEntries.slice(pos + 1)),
+      children: [].concat(
+        node.children.slice(0, pos),
         {
-          keyEntries: [...leftChild.keyEntries.slice(0), node.keyEntries[pos]],
-          valEntries: [...leftChild.valEntries.slice(0), node.valEntries[pos]],
-          children: [...leftChild.children.slice(0), rightChild.children[0]],
+          keyEntries: [].concat(leftChild.keyEntries.slice(0), node.keyEntries[pos]),
+          valEntries: [].concat(leftChild.valEntries.slice(0), node.valEntries[pos]),
+          children: [].concat(leftChild.children.slice(0), rightChild.children[0]),
           degree: leftChild.degree + 1,
         },
         {
@@ -214,7 +214,7 @@ function adjustForDelete(node, pos) {
           children: rightChild.children.slice(1),
           degree: rightChild.degree - 1,
         },
-        ...node.children.slice(pos + 2)],
+        node.children.slice(pos + 2)),
       degree: node.degree,
     };
   } else {
@@ -228,15 +228,15 @@ function adjustForDelete(node, pos) {
         return {
           keyEntries: node.keyEntries.slice(pos + 1),
           valEntries: node.valEntries.slice(pos + 1),
-          children: [
+          children: [].concat(
             {
-              keyEntries: [...leftChild.keyEntries.slice(0), node.keyEntries[pos], ...rightChild.keyEntries.slice(0)],
-              valEntries: [...leftChild.valEntries.slice(0), node.valEntries[pos], ...rightChild.valEntries.slice(0)],
-              children: [...leftChild.children.slice(0), ...rightChild.children.slice(0)],
+              keyEntries: [].concat(leftChild.keyEntries.slice(0), node.keyEntries[pos], rightChild.keyEntries.slice(0)),
+              valEntries: [].concat(leftChild.valEntries.slice(0), node.valEntries[pos], rightChild.valEntries.slice(0)),
+              children: [].concat(leftChild.children.slice(0), rightChild.children.slice(0)),
               degree: leftChild.degree + rightChild.degree, // degree = number of children, which didn't change
             },
-            ...node.children.slice(pos + 2),
-          ],
+            node.children.slice(pos + 2)
+          ),
           degree: node.degree - 1,
         }
       } else {
@@ -244,18 +244,18 @@ function adjustForDelete(node, pos) {
         console.log('fusing child ' + pos + ' with child ' + (pos - 1));
         let leftChild = node.children[pos - 1], rightChild = node.children[pos];
         return {
-          keyEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos)],
-          valEntries: [...node.keyEntries.slice(0, pos-1), ...node.keyEntries.slice(pos)],
-          children: [
-            ...node.children.slice(0, pos-1),
+          keyEntries: [].concat(node.keyEntries.slice(0, pos-1), node.keyEntries.slice(pos)),
+          valEntries: [].concat(node.keyEntries.slice(0, pos-1), node.keyEntries.slice(pos)),
+          children: [].concat(
+            node.children.slice(0, pos-1),
             {
-              keyEntries: [...leftChild.keyEntries.slice(0), node.keyEntries[pos-1], ...rightChild.keyEntries.slice(0)],
-              valEntries: [...leftChild.valEntries.slice(0), node.valEntries[pos-1], ...rightChild.valEntries.slice(0)],
-              children: [...leftChild.children.slice(0), ...rightChild.children.slice(0)],
+              keyEntries: [].concat(leftChild.keyEntries.slice(0), node.keyEntries[pos-1], rightChild.keyEntries.slice(0)),
+              valEntries: [].concat(leftChild.valEntries.slice(0), node.valEntries[pos-1], rightChild.valEntries.slice(0)),
+              children: [].concat(leftChild.children.slice(0), rightChild.children.slice(0)),
               degree: leftChild.degree + rightChild.degree, // degree = number of children, which didn't change
             },
-            ...node.children.slice(pos+1)
-          ],
+            node.children.slice(pos+1)
+          ),
           degree: node.degree - 1,
         }
       }
@@ -269,9 +269,9 @@ function deleteFromNonSingletonNode(node, key) {
     let succNode = node.children[keyloc.pos + 1];
     if (succNode === null) { // leaf node
       return {
-        keyEntries: [...node.keyEntries.slice(0, keyloc.pos), ...node.keyEntries.slice(keyloc.pos + 1)],
-        valEntries: [...node.valEntries.slice(0, keyloc.pos), ...node.valEntries.slice(keyloc.pos + 1)],
-        children: [...node.children.slice(0, keyloc.pos), ...node.children.slice(keyloc.pos + 1)], // should all be null anyway - could be simpler
+        keyEntries: [].concat(node.keyEntries.slice(0, keyloc.pos), node.keyEntries.slice(keyloc.pos + 1)),
+        valEntries: [].concat(node.valEntries.slice(0, keyloc.pos), node.valEntries.slice(keyloc.pos + 1)),
+        children: [].concat(node.children.slice(0, keyloc.pos), node.children.slice(keyloc.pos + 1)), // should all be null anyway - could be simpler
         degree: node.degree - 1,
       }
     } else {
@@ -282,16 +282,24 @@ function deleteFromNonSingletonNode(node, key) {
       keyloc = findKey(adjustedNode, key);
       if (keyloc.found) { // still in this node
         return {
-          keyEntries: [...adjustedNode.keyEntries.slice(0, keyloc.pos + 1), succ.key, ...adjustedNode.keyEntries.slice(keyloc.pos + 2)],
-          valEntries: [...adjustedNode.valEntries.slice(0, keyloc.pos + 1), succ.val, ...adjustedNode.valEntries.slice(keyloc.pos + 2)],
-          children: [...adjustedNode.children.slice(0, keyloc.pos + 1), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos + 1], succ.key), ...adjustedNode.children.slice(keyloc.pos + 2)],
+          keyEntries: [].concat(adjustedNode.keyEntries.slice(0, keyloc.pos + 1), succ.key, adjustedNode.keyEntries.slice(keyloc.pos + 2)),
+          valEntries: [].concat(adjustedNode.valEntries.slice(0, keyloc.pos + 1), succ.val, adjustedNode.valEntries.slice(keyloc.pos + 2)),
+          children: [].concat(
+            adjustedNode.children.slice(0, keyloc.pos + 1),
+            deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos + 1], succ.key),
+            adjustedNode.children.slice(keyloc.pos + 2)
+          ),
           degree: adjustedNode.degree,
         };
       } else {
         return {
           keyEntries: adjustedNode.keyEntries.slice(0),
           valEntries: adjustedNode.valEntries.slice(0),
-          children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key), ...adjustedNode.children.slice(keyloc.pos + 1)],
+          children: [].concat(
+            adjustedNode.children.slice(0, keyloc.pos),
+            deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key),
+            adjustedNode.children.slice(keyloc.pos + 1)
+          ),
           degree: adjustedNode.degree,
         };
       }
@@ -312,7 +320,11 @@ function deleteFromNonSingletonNode(node, key) {
     return {
       keyEntries: adjustedNode.keyEntries.slice(0),
       valEntries: adjustedNode.valEntries.slice(0),
-      children: [...adjustedNode.children.slice(0, keyloc.pos), deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key), ...adjustedNode.children.slice(keyloc.pos + 1)],
+      children: [].concat(
+        adjustedNode.children.slice(0, keyloc.pos),
+        deleteFromNonSingletonNode(adjustedNode.children[keyloc.pos], key),
+        adjustedNode.children.slice(keyloc.pos + 1)
+      ),
       degree: adjustedNode.degree,
     };
   }
@@ -334,9 +346,9 @@ function deleteFromRoot(root, key) {
       if (root.children[0].degree === 2 && root.children[1].degree === 2) {
         let leftChild = root.children[0], rightChild = root.children[1];
         root = {
-          keyEntries: [...leftChild.keyEntries.slice(0), root.keyEntries[0], ...rightChild.keyEntries.slice(0)],
-          valEntries: [...leftChild.valEntries.slice(0), root.valEntries[0], ...rightChild.valEntries.slice(0)],
-          children: [...leftChild.children.slice(0), ...rightChild.children.slice(0)],
+          keyEntries: [].concat(leftChild.keyEntries.slice(0), root.keyEntries[0], rightChild.keyEntries.slice(0)),
+          valEntries: [].concat(leftChild.valEntries.slice(0), root.valEntries[0], rightChild.valEntries.slice(0)),
+          children: [].concat(leftChild.children.slice(0), rightChild.children.slice(0)),
           degree: leftChild.degree + rightChild.degree,
         };
       }
@@ -409,9 +421,9 @@ function inorder(node) {
     for (i=0; i < node.degree - 1; i++) {
       let kv = {};
       kv[node.keyEntries[i]] = node.valEntries[i];
-      res.push(...inorder(node.children[i]), kv);
+      res = res.concat(inorder(node.children[i]), kv);
     }
-    res.push(...inorder(node.children[i]));
+    res = res.concat(inorder(node.children[i]));
     return res;
   }
 }
@@ -427,7 +439,7 @@ class B234Tree {
       throw new Error('key type (' + typeof key + ') doesn\'t match tree key type (' + this.keyType + ')');
     }
     let nodePath = findPathToKey(this.root, key);
-    if (nodePath) { console.log(nodePath.path); }
+//    if (nodePath) { console.log(nodePath.path); }
     return nodePath ? nodePath.val : undefined;
   }
 
